@@ -10,7 +10,7 @@ $credentials = json_decode(file_get_contents('.cred'));
 $config = [
     'id' => $credentials->id,
     'secret' => $credentials->secret,
-    'redirect_url' => 'http://' . $_SERVER['HTTP_HOST']
+    'redirect_url' => 'http://192.168.0.13/StravaImporter/'
 ];
 $importer = new StravaImporter($config);
 
@@ -55,14 +55,12 @@ if ($authorized and !empty($_POST) and !empty($_FILES)) {
                 <div class="row">
                     <div class="col-sm-6">
                         <p>
-                            Please follow the following column headers.
+                            Use same format as <a href="https://www.runningahead.com/help/custom_csv">RunningAhead.com</a> custom CSV. Attach the file and click on Submit. Some notes:
                             <ul>
-                                <li><b>name</b> : Name of activity</li>
-                                <li><b>date</b> : Date in ISO 8601 (ie: 2016-11-11T11:07:59Z)</li>
-                                <li><b>distance</b> : Distance (miles)</li>
-                                <li><b>time</b> : Time (minutes)</li>
+                                <li><b>Time</b> : Must be in HH:MM:SS or HH:MM format</li>
+                                <li><b>Name</b> : will be based on type of workout and course if exists</li>
                             </ul>
-                            Attach the file and click on Submit.
+                            Only date, time, activity, workout, distance, duration, course and notes are sent to Strava, rest of data is ignored.
                         </p>
                     </div>
                     <div class="col-sm-6">
@@ -91,8 +89,9 @@ if ($authorized and !empty($_POST) and !empty($_FILES)) {
                 <?php if (!is_null($res)): ?>
                     <hr>
                     <?php if ($res->status): ?>
+                        <script>console.dir(<?php echo $res->added ?>);</script>
                         <div class="alert alert-success">
-                            Activities uploaded.
+                            <?php echo htmlspecialchars($res->message); ?>
                         </div>
                     <?php else: ?>
                         <div class="alert alert-danger">

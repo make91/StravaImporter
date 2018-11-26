@@ -3,3 +3,4 @@ Homestead.yaml
 Vagrantfile
 .cred
 .idea
+logs/

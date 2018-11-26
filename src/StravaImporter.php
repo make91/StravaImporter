@@ -143,28 +143,70 @@ class StravaImporter {
         if (!is_array($data)) {
             $data = $this->_csvToArray($data);
         }
-        
+
         $this->data = $data;
+        $postedObjects = [];
         foreach ($this->data as $activity) {
             $activity = (object)$activity;
 
+            // check if time column is empty, if it is put time as noon
+            if (strlen($activity->Time)) {
+                $date = date('c',strtotime("$activity->Date $activity->Time"));
+            } else {
+                $date = date('c',strtotime("$activity->Date 12:00:00"));
+            }
+
+            // convert duration to seconds
+            $duration = explode(':', $activity->Duration);
+            if (sizeof($duration) == 1) {
+                $duration = intval($duration[0]);
+            } else if (sizeof($duration) == 2) {
+                $duration = ($duration[0]*60) + intval($duration[1]);
+            } else {
+                $duration = ($duration[0]*3600) + ($duration[1]*60) + intval($duration[2]);
+            }
+
+            // convert distance to metres based on specified distance unit
+            $distanceUnit = $activity->{'Distance Unit'};
+            if ($distanceUnit == 'mi') {
+                $distance = $activity->Distance * 1609.344;
+            } else if ($distanceUnit == 'km') {
+                $distance = $activity->Distance * 1000;
+            } else if ($distanceUnit == 'm') {
+                $distance = $activity->Distance;
+            } else if ($distanceUnit == 'yd') {
+                $distance = $activity->Distance * 0.9144;
+            } else {
+                $distance = $activity->Distance * 1609.344;
+            }
+
+            // name from workout type and course if exists
+            if (strlen($activity->Course)) {
+                $name = $activity->Workout . ', ' . $activity->Course;
+            } else {
+                $name = $activity->Workout;
+            }
+
+            $objToPost = [
+                'name'             => $name,
+                'type'             => $activity->Activity,
+                'start_date_local' => $date,
+                'elapsed_time'     => $duration,
+                'distance'         => $distance,
+                'description'      => $activity->Notes
+            ];
+            array_push($postedObjects, $objToPost);
+            $this->logToFile(json_encode($objToPost));
             //http://strava.github.io/api/v3/activities/#create
-            $res = $this->api->post('activities', [
-                'name'             => $activity->name,
-                'type'             => $activity->type,
-                'start_date_local' => $activity->date,                  //ISO 8601: 2016-11-11T11:07:59Z
-                'elapsed_time'     => $activity->time * 60,             //minutes to seconds
-                'distance'         => $activity->distance * 1609.34,    //miles to meters
-                'private'          => 0
-            ]);
+            $res = $this->api->post('activities', $objToPost);
 
             //TODO: check if any activity was not uploaded
             //echo "<pre>" . print_r($res, true). "</pre>"; exit;
         }
-
         return (object)[
             'status' => true,
-            'message' => 'Activity uploaded'
+            'message' => 'Uploaded ' . sizeof($postedObjects) . ' runs',
+            'added' => json_encode($postedObjects)
         ];
     }
 
@@ -175,7 +217,10 @@ class StravaImporter {
             $a = array_combine($csv[0], $a);
         });
         array_shift($csv); # remove column header
-
         return $csv;
+    }
+    protected function logToFile($text) {
+        $log = date("Y-m-d H:i:s", time()) . " " . $text . PHP_EOL;
+        file_put_contents('/home/marcus/public/StravaImporter/logs/stravalog_'.date("Y-m-d").'.log', $log, FILE_APPEND);
     }
 }

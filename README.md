@@ -1,6 +1,6 @@
-# StravaCsvUploader
+# StravaCsvUploader for RunningAhead style CSV file
 
-Upload a CSV containing activities to your Strava account
+Upload a CSV containing activities to your Strava account that are in same format as specified [https://www.runningahead.com/help/custom_csv](here). I wanted to keep adding via csv to both RunningAhead and Strava. RunningAhead's tab separated export file could also be sent to Strava with some modifications. I use this with in my local virtualbox ubuntu, not on my site.
 
 ## Set up
 
